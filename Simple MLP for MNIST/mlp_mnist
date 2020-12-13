@@ -21,7 +21,7 @@ model = Chain(Dense(784, 25, relu), Dense(25, 10, identity), softmax)
 L(x, y) = Flux.crossentropy(model(x), y)
 opt = Descent(0.1)
 databatch = (Flux.batch(xs), Flux.batch(ys))
-Flux.train!(L, params(model), Iterators.repeated(databatch, 10), opt,
+Flux.train!(L, params(model), Iterators.repeated(databatch, 1000), opt,
 cb = Flux.throttle(() -> println("Training is in progress"), 5))
 
 i = 15333
