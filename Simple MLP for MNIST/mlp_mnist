@@ -1,33 +1,31 @@
+#first we need to add and precompile packages
+
 using Pkg
 Pkg.add("Flux")
 Pkg.add("Images")
 Pkg.add("Plots")
 using Flux, Flux.Data.MNIST, Images, Plots
 
-labels = MNIST.labels();
-images = MNIST.images();
+#downloading MNIST images and labels
 
-length(labels)
-length(images)
-labels[13]
-images[13]
-typeof(images[137])
-Float64.(images[137])
+labels = MNIST.labels()
+images = MNIST.images()
+
+#getting images and labels ready for training
 
 xs = [vec(Float64.(img)) for img in images[1:5000]]
 ys = [Flux.onehot(label, 0:9) for label in labels[1:5000]]
+
+#constructing neural network model and its training
 
 model = Chain(Dense(784, 25, relu), Dense(25, 10, identity), softmax)
 L(x, y) = Flux.crossentropy(model(x), y)
 opt = Descent(0.1)
 databatch = (Flux.batch(xs), Flux.batch(ys))
 Flux.train!(L, params(model), Iterators.repeated(databatch, 1000), opt,
-cb = Flux.throttle(() -> println("Training is in progress"), 5))
+cb = Flux.throttle(() -> println("Training..."), 5))
 
-i = 15333
-display(images[i])
-labels[i], findmax(model(vec(Float64.(images[i])))) .- (0, 1)
-model(vec(Float64.(images[i])))
+#testing our model accuracy
 
 test(i) = findmax(model(vec(Float64.(images[i]))))[2]-1
 sum(test(i) == labels[i] for i in 1:60000)/60000
