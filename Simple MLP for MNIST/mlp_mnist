@@ -11,7 +11,7 @@ using Flux, Flux.Data.MNIST, Images, Plots
 labels = MNIST.labels()
 images = MNIST.images()
 
-#getting images and labels ready for training
+#getting images and labels ready for batching
 
 xs = [vec(Float64.(img)) for img in images[1:5000]]
 ys = [Flux.onehot(label, 0:9) for label in labels[1:5000]]
