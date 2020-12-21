@@ -21,7 +21,7 @@ grapes2 = DataFrame(CSV.File("~\\data\\Grape_White_2.dat", delim='\t', normalize
 apples = vcat(apples1, apples2, apples3)
 grapes = vcat(grapes1, grapes2) 
 
-#getting data ready for training
+#getting data ready for batching
 
 x_apples = [ [apples[i, :red], apples[i, :blue]] for i in 1:size(apples, 1) ]
 x_bananas = [ [bananas[i, :red], bananas[i, :blue]] for i in 1:size(bananas, 1) ]
