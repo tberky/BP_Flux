@@ -1,4 +1,4 @@
-#adding and precompiling packages
+#first we need to add and precompile packages
 
 using Pkg
 Pkg.add("CSV")
@@ -29,7 +29,7 @@ x_grapes = [ [grapes[i, :red], grapes[i, :blue]] for i in 1:size(grapes, 1) ]
 xs = vcat(x_apples, x_bananas, x_grapes)
 ys = vcat(fill(Flux.onehot(1, 1:3), size(x_apples)),
           fill(Flux.onehot(2, 1:3), size(x_bananas)),
-          fill(Flux.onehot(3, 1:3), size(x_grapes)));
+          fill(Flux.onehot(3, 1:3), size(x_grapes)))
           
 #constructing neural network model and its training
 
