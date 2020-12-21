@@ -1,3 +1,5 @@
+#first we need to add and precompile packages
+
 using Pkg
 Pkg.add("Flux")
 Pkg.add("Images")
@@ -5,11 +7,17 @@ Pkg.add("Plots")
 Pkg.add("CUDA")
 using Flux, Flux.Data.MNIST, Images, Plots, CUDA
 
-labels = MNIST.labels();
-images = MNIST.images();
+#downloading MNIST images and labels
+
+labels = MNIST.labels()
+images = MNIST.images()
+
+#getting images and labels ready for batching
 
 xs = [Flux.unsqueeze(Float64.(image), 3) for image in images[1:5000]]
 ys = [Flux.onehot(label, 0:9) for label in labels[1:5000]]
+
+#constructing neural network model and its training
 
 imgsize = (28,28,1)
 model = Chain(Conv((3, 3), imgsize[3]=>16, pad=(1,1), relu),
@@ -19,20 +27,23 @@ model = Chain(Conv((3, 3), imgsize[3]=>16, pad=(1,1), relu),
         Conv((3, 3), 32=>32, pad=(1,1), relu),
         MaxPool((2,2)),
         flatten,
-        Dense(288,10)) |> gpu
+        Dense(288,10)) |> gpu #passing our model to our gpu
 
 L(x, y) = Flux.crossentropy(model(x), y)
 opt = Descent(0.1)
-databatch = (Flux.batch(xs), Flux.batch(ys)) |> gpu
+databatch = (Flux.batch(xs), Flux.batch(ys)) |> gpu #passing our batched data to our gpu
 Flux.train!(L, params(model), Iterators.repeated(databatch, 1000), opt,
 cb = Flux.throttle(() -> println("Training is in progress"), 5))
 
-test_labels = MNIST.labels(:test);
-test_images = MNIST.images(:test);
+#downloading MNIST test images and label and batching them
+
+test_labels = MNIST.labels(:test)
+test_images = MNIST.images(:test)
 test_xs = [Flux.unsqueeze(Float64.(image), 3) for image in test_images[1:10000]]
 test_ys = [Flux.onehot(label, 0:9) for label in test_labels[1:10000]]
-test_databatch = (Flux.batch(test_xs), Flux.batch(test_ys)) |> gpu
+test_databatch = (Flux.batch(test_xs), Flux.batch(test_ys)) |> gpu #passing our batched test data to our gpu
 
+#testing accuracy of our model
 
 accuracy(x, y, model) = mean(onecold(cpu(model(x))) .== onecold(cpu(y)))
 acc = accuracy(test_databatch..., model)
