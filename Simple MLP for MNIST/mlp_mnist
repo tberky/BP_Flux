@@ -1,31 +1,40 @@
-#first we need to add and precompile packages
+#In this example we will show a simple MLP network for MNIST classification.
+
+
+#For this example i used these versions of packages:
+#Images v0.23.1
+#Flux v0.11.2
+#and Julia in the version 1.5.3
+
+#So first we need to add and precompile packages:
 
 using Pkg
 Pkg.add("Flux")
 Pkg.add("Images")
-Pkg.add("Plots")
-using Flux, Flux.Data.MNIST, Images, Plots
+using Flux, Flux.Data.MNIST, Images
 
-#downloading MNIST images and labels
+#Downloading MNIST images and labels. To use images and labels from MNIST, just save them into variables using the MNIST.labels() and MNIST.images() functions.
 
 labels = MNIST.labels()
 images = MNIST.images()
 
-#getting images and labels ready for batching
+#We will prepare data and labels for later "batching". We will not use all 60,000 images and labels for training due to the complexity of the calculations.
 
 xs = [vec(Float64.(img)) for img in images[1:5000]]
 ys = [Flux.onehot(label, 0:9) for label in labels[1:5000]]
 
-#constructing neural network model and its training
+#Constructing neural network model and its training is basically same as in our example "Simple mlp". But this time we have 784 input neurons 
+#(one neuron for each pixel of the image), 25 neurons in the hidden layer and the output neurons is 10 (classified for 10 labels). 
+#This time we will go for 1000 iterations.
 
 model = Chain(Dense(784, 25, relu), Dense(25, 10, identity), softmax)
 L(x, y) = Flux.crossentropy(model(x), y)
 opt = Descent(0.1)
 databatch = (Flux.batch(xs), Flux.batch(ys))
 Flux.train!(L, params(model), Iterators.repeated(databatch, 1000), opt,
-cb = Flux.throttle(() -> println("Training..."), 5))
+cb = Flux.throttle(() -> println("Training..."), 5))corre
 
-#testing our model accuracy
+#Now lets test our model on the whole MNIST dataset. We are comparing our "most likely" values to labels from dataset and then calculating the percentage of the correct answers.
 
 test(i) = findmax(model(vec(Float64.(images[i]))))[2]-1
 sum(test(i) == labels[i] for i in 1:60000)/60000
