@@ -1,23 +1,37 @@
-#first we need to add and precompile packages
+#In this example we will show a simple MLP network, which will try to distinguish type of fruits based on value of RGB color spectrum in images of bananas, grapes and apples.
+
+
+#For this example i used these versions of packages:
+#CUDA v2.3.0
+#Images v0.23.1
+#Flux v0.11.2
+#Statistics 
+#and Julia in the version 1.5.3
+
+#So first we need to add and precompile packages:
 
 using Pkg
 Pkg.add("Flux")
 Pkg.add("Images")
-Pkg.add("Plots")
-Pkg.add("CUDA")
-using Flux, Flux.Data.MNIST, Images, Plots, CUDA
+Pkg.add("CUDA") #CUDA package lets us use our GPU for calculations (CNN is pretty heavy)
+Pkg.add("Statistics")
+using Flux, Flux.Data.MNIST, Images, CUDA, Statistics
 
-#downloading MNIST images and labels
+#Downloading MNIST images and labels
 
 labels = MNIST.labels()
 images = MNIST.images()
 
-#getting images and labels ready for batching
+#Getting images and labels ready for batching. Instead of vec function, we prepare the images with the unsqueeze function, which in the contrast of vec, adds a dimension.
+#So we will create 28x28x1 matrixes. The third dimension is the color channel. In our case 1, because MNIST is only black and white (for RGB we would need 3)
 
 xs = [Flux.unsqueeze(Float64.(image), 3) for image in images[1:5000]]
 ys = [Flux.onehot(label, 0:9) for label in labels[1:5000]]
 
-#constructing neural network model and its training
+#Constructing neural network model and its training. This time we will use Conv and MaxPool layers. For Conv layers we determine the filter size and input/output size, padding value and activation function.
+#Padding adds zeros around the convolution of the reduced image to keep image in the same size. For MaxPool layer we determine only their filter size.
+#After our Convolution and MaxPool layers we use flatten function, which converts our output to a vector that can be classified by the classical Dense layer.
+#The "|> gpu" argument lets the network work with the graphics card instead of the CPU.
 
 imgsize = (28,28,1)
 model = Chain(Conv((3, 3), imgsize[3]=>16, pad=(1,1), relu),
@@ -31,11 +45,11 @@ model = Chain(Conv((3, 3), imgsize[3]=>16, pad=(1,1), relu),
 
 L(x, y) = Flux.crossentropy(model(x), y)
 opt = Descent(0.1)
-databatch = (Flux.batch(xs), Flux.batch(ys)) |> gpu #passing our batched data to our gpu
+databatch = (Flux.batch(xs), Flux.batch(ys)) |> gpu #only change here is passing our batched data to our gpu
 Flux.train!(L, params(model), Iterators.repeated(databatch, 1000), opt,
 cb = Flux.throttle(() -> println("Training is in progress"), 5))
 
-#downloading MNIST test images and label and batching them
+#MNIST dataset has also test set of images and labels. So for testing purposes we will download them and batch them.
 
 test_labels = MNIST.labels(:test)
 test_images = MNIST.images(:test)
@@ -43,7 +57,7 @@ test_xs = [Flux.unsqueeze(Float64.(image), 3) for image in test_images[1:10000]]
 test_ys = [Flux.onehot(label, 0:9) for label in test_labels[1:10000]]
 test_databatch = (Flux.batch(test_xs), Flux.batch(test_ys)) |> gpu #passing our batched test data to our gpu
 
-#testing accuracy of our model
+#We will take advantage of the onecold function (reversed onehot), which returns only the "item" that has value 1. We will compare onecold values of the test images, the test labels and then calculate the percentage of our accuracy.
 
 accuracy(x, y, model) = mean(onecold(cpu(model(x))) .== onecold(cpu(y)))
 acc = accuracy(test_databatch..., model)
