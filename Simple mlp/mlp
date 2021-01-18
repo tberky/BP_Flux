@@ -1,4 +1,13 @@
-#first we need to add and precompile packages
+#In this example we will show a simple MLP network, which will try to distinguish type of fruits based on value of RGB color spectrum in images of bananas, grapes and apples.
+
+
+#For this example i used these versions of packages:
+#CSV v0.8.2
+#DataFrames v0.22.1
+#Flux v0.11.2
+#Plots v1.9.1
+
+#So first we need to add and precompile packages:
 
 using Pkg
 Pkg.add("CSV")
@@ -7,7 +16,11 @@ Pkg.add("Flux")
 Pkg.add("Plots")
 using CSV, DataFrames, Flux, Plots
 
-#loading our data files
+#We have data already prepared. The data files contain RGB color spectrum values for hundreds of images
+#We load data files using the CSV package and the DataFrame package. It converts them into a table format, which gives us a matrix representation.
+#The delim argument can be used to determine how data comlumns are separated from each other (in our case by tabulator).
+#If we do not provide this argument, the program will try to find out how to separate columns itself. 
+#The normalizenames argument replaces the characters in the header so that they are readable for Julia.
 
 apples1 = DataFrame(CSV.File("~\\data\\Apple_Golden_1.dat", delim='\t', normalizenames=true))
 apples2 = DataFrame(CSV.File("~\\data\\Apple_Golden_2.dat", delim='\t', normalizenames=true))
@@ -16,12 +29,13 @@ bananas = DataFrame(CSV.File("~\\data\\bananas.dat", delim='\t', normalizenames=
 grapes1 = DataFrame(CSV.File("~\\data\\Grape_White.dat", delim='\t', normalizenames=true))
 grapes2 = DataFrame(CSV.File("~\\data\\Grape_White_2.dat", delim='\t', normalizenames=true))
 
-#merging files containing data of the same fruit
+#We chain the inputs of the same fruit into one variable. The vcat function will help us with this, which chains the matrixes in the vertical direction.
 
 apples = vcat(apples1, apples2, apples3)
 grapes = vcat(grapes1, grapes2) 
 
-#getting data ready for batching
+#Now we extract the desired properties from our data and create corresponding labels for our classification.
+#We will use onehot encoding, where individual dimensions of the vector have the meaning of one particular property and take values of zero, or one.
 
 x_apples = [ [apples[i, :red], apples[i, :blue]] for i in 1:size(apples, 1) ]
 x_bananas = [ [bananas[i, :red], bananas[i, :blue]] for i in 1:size(bananas, 1) ]
@@ -31,15 +45,22 @@ ys = vcat(fill(Flux.onehot(1, 1:3), size(x_apples)),
           fill(Flux.onehot(2, 1:3), size(x_bananas)),
           fill(Flux.onehot(3, 1:3), size(x_grapes)))
           
-#constructing neural network model and its training
+#We will now construct our model. We will create 2 neural networks and chain them. Flux allows us to automatically create neurons using the Dense function.
+#The Dense function accepts 3 arguments, the number of input neurons, the number of output neurons and activation function.
+#The Dense function can be concatenated using the Chain function. The Chain function can concatenates several functions so that they are called sequentially on a given input.
+#As an activation function for the first network, we chose an already predefined sigmoid function. For the second network, we chose the predefined identity function.
+#Identity is a function that returns its own value, and we used it to make the softmax function effective at the end. Softmax normalizes the data so that their sum is 1.
 
-model = Chain(Dense(2, 4, σ), Dense(4, 3, identity), softmax)
-L(x,y) = Flux.crossentropy(model(x), y)
-opt = Descent(0.1)
-databatch = (Flux.batch(xs), Flux.batch(ys))
-Flux.train!(L, params(model),Iterators.repeated(databatch, 50000), opt, cb = Flux.throttle(() -> println("Training..."), 5))
+model = Chain(Dense(2, 4, σ), Dense(4, 3, identity), softmax) #our MLP will have 2 input(blue and red), 4 hidden and 3 output(3 types of fruit) neurons
+L(x,y) = Flux.crossentropy(model(x), y) #our error function. We used crossentropy.
+opt = Descent(0.1) #this is our optimizer. Descent funtion corresponds with gradient method.
+databatch = (Flux.batch(xs), Flux.batch(ys)) #this is a n-tuple of our training data and its labels
+Flux.train!(L, params(model),Iterators.repeated(databatch, 50000), opt, cb = Flux.throttle(() -> println("Training..."), 5)) #now we will just train our network!
 
-#visualising our trained network
+#cb(callback) is used to monitor our training process. By Flux.throttle function we defined it will be called each 5 seconds and write "Training...", so we know training is in progress.
+
+#The last thing we will do is visualizing our data using the Plots package. Features xlabel! and ylabel! describe our axis. 
+#Using the contour! feature we draw the boundaries of our classifications and by scatter! function we record the values of all our data on the graph.
 
 using Plots
 function plot_decision_boundaries(model, x_apples, x_bananas, x_grapes)
@@ -56,6 +77,6 @@ function plot_decision_boundaries(model, x_apples, x_bananas, x_grapes)
 end
 plot_decision_boundaries(model, x_apples, x_bananas, x_grapes)
 
-#saving our visualisation into png file
+#We can save our visualization to image as well...
 
 png(plot_decision_boundaries(model, x_apples, x_bananas, x_grapes), "mlp_graph")
