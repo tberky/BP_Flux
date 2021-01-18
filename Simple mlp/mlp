@@ -6,6 +6,7 @@
 #DataFrames v0.22.1
 #Flux v0.11.2
 #Plots v1.9.1
+#and Julia in the version 1.5.3
 
 #So first we need to add and precompile packages:
 
