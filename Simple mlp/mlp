@@ -58,6 +58,7 @@ opt = Descent(0.1) #this is our optimizer. Descent funtion corresponds with grad
 databatch = (Flux.batch(xs), Flux.batch(ys)) #this is a n-tuple of our training data and its labels
 Flux.train!(L, params(model),Iterators.repeated(databatch, 50000), opt, cb = Flux.throttle(() -> println("Training..."), 5)) #now we will just train our network!
 
+#Iterators.repeated function determines how many times our model will pass our data.
 #cb(callback) is used to monitor our training process. By Flux.throttle function we defined it will be called each 5 seconds and write "Training...", so we know training is in progress.
 
 #The last thing we will do is visualizing our data using the Plots package. Features xlabel! and ylabel! describe our axis. 
